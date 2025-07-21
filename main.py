@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 from werkzeug.utils import secure_filename
 from bson import ObjectId
+from PIL import Image
 from bson.json_util import dumps
 import google.generativeai as genai
 import time
