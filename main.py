@@ -148,8 +148,8 @@ def get_insights():
     return jsonify({"insight": analisis})
 
 def perform_analysis(registros):
-    api_key = os.getenv("GOOGLE_API_KEY")
-    genai.configure(api_key=config.GEMINI_API_KEY)
+    apiKey = os.getenv("GOOGLE_API_KEY")
+    genai.configure(api_key=apiKey)
     model = genai.GenerativeModel('gemini-2.5-flash')
 
     try:
