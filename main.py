@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, render_template
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from werkzeug.utils import secure_filename
@@ -232,6 +232,10 @@ def analizar_imagen(registro_id, filepath):
                 'procesado': True
             }}
         )
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
 
 # Manejo de conexiones SocketIO
 @socketio.on('connect', namespace='/dashboard')
