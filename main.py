@@ -9,8 +9,11 @@ from PIL import Image
 from bson.json_util import dumps
 import google.generativeai as genai
 import time
+from flask_socketio import SocketIO, emit
+import threading
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 load_dotenv()
 
 # Configuración
@@ -88,6 +91,12 @@ def recibir_imagen():
         # Insertar en MongoDB
         result = registros_collection.insert_one(registro)
         registro['_id'] = str(result.inserted_id)
+        
+        # Emitir evento de nuevo registro en tiempo real
+        socketio.emit('nuevo_registro', registro, namespace='/dashboard')
+        
+        # Iniciar análisis en segundo plano
+        threading.Thread(target=analizar_imagen, args=(str(result.inserted_id), filepath)).start()
         
         return jsonify({
             "mensaje": "Imagen recibida y guardada",
@@ -184,5 +193,52 @@ def perform_analysis(rutas):
         time.sleep(10)
         return f"Error en el análisis: {e}"
 
+# Función para analizar la imagen en segundo plano
+def analizar_imagen(registro_id, filepath):
+    try:
+        apiKey = os.getenv("GOOGLE_API_KEY")
+        genai.configure(api_key=apiKey)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        imagen = Image.open(filepath)
+        prompt = "Analiza esta imagen y describe lo que ves en detalle."
+        
+        response = model.generate_content([prompt, imagen])
+        analisis = response.text.strip()
+        
+        # Actualizar el registro con el análisis
+        registros_collection.update_one(
+            {'_id': ObjectId(registro_id)},
+            {'$set': {
+                'analisis': analisis,
+                'procesado': True
+            }}
+        )
+        
+        # Obtener el registro actualizado
+        registro_actualizado = registros_collection.find_one({'_id': ObjectId(registro_id)})
+        registro_actualizado['_id'] = str(registro_actualizado['_id'])
+        
+        # Emitir evento de actualización
+        socketio.emit('actualizacion_analisis', registro_actualizado, namespace='/dashboard')
+        
+    except Exception as e:
+        print(f"Error en el análisis: {e}")
+        # Actualizar con error
+        registros_collection.update_one(
+            {'_id': ObjectId(registro_id)},
+            {'$set': {
+                'analisis': f"Error en el análisis: {str(e)}",
+                'procesado': True
+            }}
+        )
+
+# Manejo de conexiones SocketIO
+@socketio.on('connect', namespace='/dashboard')
+def handle_connect():
+    print('Cliente conectado al dashboard')
+    emit('estado', {'mensaje': 'Conectado al dashboard en tiempo real'})
+
+# Al final del archivo, modificar el main
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8081, debug=True)
+    socketio.run(app, host='0.0.0.0', port=8081, debug=True)

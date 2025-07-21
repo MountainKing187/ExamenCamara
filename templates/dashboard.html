@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Monitoreo</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard de Monitoreo en Tiem Real</h1>
+        <div class="filters">
+            <input type="text" id="searchInput" placeholder="Buscar por ubicación o tipo...">
+            <button id="refreshBtn">Actualizar</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Registros</h3>
+                <p id="totalCount">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Por Analizar</h3>
+                <p id="pendingCount">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Analizados</h3>
+                <p id="processedCount">0</p>
+            </div>
+        </div>
+        
+        <div class="registros-container">
+            <table id="registrosTable">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Tipo de Sensor</th>
+                        <th>Ubicación</th>
+                        <th>Análisis</th>
+                        <th>Imagen</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="registrosBody">
+                    <!-- Los registros se cargarán aquí -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
