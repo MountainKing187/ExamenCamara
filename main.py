@@ -168,10 +168,13 @@ def perform_analysis(rutas):
         imagenes = [Image.open(ruta) for ruta in rutas]
 
         prompt = f"""
-        Analiza las siguientes imagenes y describe lo que tiene
+        Analiza las siguientes imagenes y describe lo que tiene.
         """
-      
-        response = model.generate_content([prompt,imagenes])
+        # Construir contenido correctamente: texto + imágenes individuales
+        contenido = [prompt]  # Inicia con el prompt
+        contenido.extend(imagenes)  # Agrega cada imagen individualmente
+
+        response = model.generate_content(contenido)
         analisis = response.text.strip()
         
         return analisis
@@ -180,22 +183,6 @@ def perform_analysis(rutas):
         print(f"Error en el análisis: {e}")
         time.sleep(10)
         return f"Error en el análisis: {e}"
-
-def utc_time_to_millis(utc_time):
-    # Calculate total seconds since epoch
-    epoch = datetime(1970, 1, 1)
-    total_seconds_since_epoch = (utc_time - epoch).total_seconds()
-
-    # Convert to milliseconds
-    milliseconds_since_epoch = int(total_seconds_since_epoch * 1000)
-    return milliseconds_since_epoch
-
-def millis_to_timedate(milliseconds):
-    # Convert milliseconds to seconds (as a float to retain precision for microseconds)
-    seconds = milliseconds / 1000
-
-    # Convert the seconds timestamp to a datetime object
-    return datetime.fromtimestamp(seconds)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8081, debug=True)
