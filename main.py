@@ -126,7 +126,7 @@ def obtener_registros():
 def servir_imagen(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@main_bp.route('/api/insights')
+@main_bp.route('/api/ver')
 def get_insights():
     # Obtener el tiempo actual y el de hace 1 minuto
     ahora = datetime.utcnow()
