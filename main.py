@@ -142,8 +142,6 @@ def get_insights():
         }
     }
 
-    resultado = [reg for reg in registros]
-
     rutas = []
     for documento in registros_collection.find(query, projection):
         if 'ruta' in documento:
