@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from werkzeug.utils import secure_filename
 from bson import ObjectId
 from bson.json_util import dumps
+import google.generativeai as genai
 
 app = Flask(__name__)
 load_dotenv()
