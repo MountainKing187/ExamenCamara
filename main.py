@@ -2,7 +2,6 @@ import os
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
-from config_loader import config_loader
 from pymongo import MongoClient
 from werkzeug.utils import secure_filename
 from bson import ObjectId
