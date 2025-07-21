@@ -1,14 +1,12 @@
 import os
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
 from pymongo import MongoClient
 from werkzeug.utils import secure_filename
 from bson import ObjectId
 from bson.json_util import dumps
 
 app = Flask(__name__)
-CORS(app)  # Habilitar CORS para el futuro dashboard
 
 # Configuración
 UPLOAD_FOLDER = 'uploads'
@@ -27,6 +25,14 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST')
+    return response
+
 
 @app.route(f'{API_BASE}', methods=['POST'])
 def recibir_imagen():
