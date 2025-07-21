@@ -143,7 +143,7 @@ def get_insights():
     }
 
     rutas = []
-    for documento in registros_collection.find(query, projection):
+    for documento in registros_collection.find(query):
         if 'ruta' in documento:
             rutas.append(documento['ruta'])
 
