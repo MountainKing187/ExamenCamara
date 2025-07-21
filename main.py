@@ -18,7 +18,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Conectar a MongoDB
 client = MongoClient('mongodb://localhost:27017/')
-db = client['sensor_db']
+db = client['imagen_db']
 registros_collection = db['registros']
 
 # Crear carpeta de uploads si no existe
@@ -30,11 +30,17 @@ def allowed_file(filename):
 
 @app.route(f'{API_BASE}', methods=['POST'])
 def recibir_imagen():
+
     # Validar que se envió un archivo
     if 'file' not in request.files:
         return jsonify({"error": "No se encontró el archivo"}), 400
     
-    file = request.files['file']
+    # Obtener archivo
+    file = request.files['file']  # 'file' debe coincidir con createFormData("file", ...)
+    
+    # Obtener campos adicionales
+    tipo_sensor = request.form.get('tipo_sensor')  # 'tipo_sensor' debe coincidir con @Part("tipo_sensor")
+    ubicacion = request.form.get('ubicacion')
     
     # Validar nombre de archivo
     if file.filename == '':
