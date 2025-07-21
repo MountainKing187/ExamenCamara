@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
+from dotenv import load_dotenv
 from config_loader import config_loader
 from pymongo import MongoClient
 from werkzeug.utils import secure_filename
@@ -8,6 +9,7 @@ from bson import ObjectId
 from bson.json_util import dumps
 
 app = Flask(__name__)
+load_dotenv()
 
 # Configuración
 UPLOAD_FOLDER = 'uploads'
@@ -146,8 +148,7 @@ def get_insights():
     return jsonify({"insight": analisis})
 
 def perform_analysis(registros):
-    config = config_loader.load_config()
-
+    api_key = os.getenv("GOOGLE_API_KEY")
     genai.configure(api_key=config.GEMINI_API_KEY)
     model = genai.GenerativeModel('gemini-2.5-flash')
 
