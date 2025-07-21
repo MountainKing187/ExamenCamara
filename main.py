@@ -104,6 +104,7 @@ def recibir_imagen():
         }), 200
     
     except Exception as e:
+        print(f"Error en el servidor: {str(e)}")
         return jsonify({"error": f"Error en el servidor: {str(e)}"}), 500
 
 @app.route(f'{API_BASE}/registros', methods=['GET'])
