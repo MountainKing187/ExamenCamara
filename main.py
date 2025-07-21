@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from bson import ObjectId
 from bson.json_util import dumps
 import google.generativeai as genai
+import time
 
 app = Flask(__name__)
 load_dotenv()
@@ -134,20 +135,25 @@ def get_insights():
     ahora = datetime.utcnow()
     hace_un_minuto = ahora - timedelta(minutes=1)
     
-    registros = registros_collection.find({
+    query = {
         "fecha": {
             "$gte": hace_un_minuto,
             "$lte": ahora
         }
-    })
+    }
 
     resultado = [reg for reg in registros]
 
-    analisis = perform_analysis(resultado)
+    rutas = []
+    for documento in registros_collection.find(query, projection):
+        if 'ruta' in documento:
+            rutas.append(documento['ruta'])
+
+    analisis = perform_analysis(rutas)
     
     return jsonify({"insight": analisis})
 
-def perform_analysis(registros):
+def perform_analysis(rutas):
     apiKey = os.getenv("GOOGLE_API_KEY")
     genai.configure(api_key=apiKey)
     model = genai.GenerativeModel('gemini-2.5-flash')
@@ -156,11 +162,10 @@ def perform_analysis(registros):
         """Realiza el análisis de datos con Gemini"""
 
         # Si no hay datos nuevos, saltar el análisis
-        if not registros:
+        if not rutas:
             print("No hay nuevos datos para analizar")
             return "No hay nuevos datos para analizar"
 
-        rutas = [doc['ruta'] for reg in registros]
         imagenes = [Image.open(ruta) for ruta in rutas]
 
         prompt = f"""
