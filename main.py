@@ -6,7 +6,7 @@ from pymongo import MongoClient
 from werkzeug.utils import secure_filename
 from bson import ObjectId
 from PIL import Image
-from bson.json_util import dumps
+from bson import json_util
 import google.generativeai as genai
 import time
 from flask_socketio import SocketIO, emit
@@ -91,12 +91,21 @@ def recibir_imagen():
         # Insertar en MongoDB
         result = registros_collection.insert_one(registro)
         registro['_id'] = str(result.inserted_id)
+
+        # Convertir el objeto datetime a string ISO
+        registro['fecha'] = registro['fecha'].isoformat()
         
-        # Emitir evento de nuevo registro en tiempo real
-        socketio.emit('nuevo_registro', registro, namespace='/dashboard')
+        # Insertar en MongoDB
+        result = registros_collection.insert_one(registro)
         
-        # Iniciar análisis en segundo plano
-        threading.Thread(target=analizar_imagen, args=(str(result.inserted_id), filepath)).start()
+        # Obtener el registro completo
+        registro_insertado = registros_collection.find_one({'_id': result.inserted_id})
+        
+        # Serializar antes de emitir y devolver
+        registro_serializado = serialize_mongo_doc(registro_insertado)
+        
+        # Emitir evento de nuevo registro
+        socketio.emit('nuevo_registro', registro_serializado, namespace='/dashboard')
         
         return jsonify({
             "mensaje": "Imagen recibida y guardada",
@@ -106,6 +115,18 @@ def recibir_imagen():
     except Exception as e:
         print(f"Error en el servidor: {str(e)}")
         return jsonify({"error": f"Error en el servidor: {str(e)}"}), 500
+
+# Función para convertir documentos de MongoDB a JSON
+def serialize_mongo_doc(doc):
+    if isinstance(doc, datetime):
+        return doc.isoformat()
+    if isinstance(doc, ObjectId):
+        return str(doc)
+    if isinstance(doc, dict):
+        return {k: serialize_mongo_doc(v) for k, v in doc.items()}
+    if isinstance(doc, list):
+        return [serialize_mongo_doc(item) for item in doc]
+    return doc
 
 @app.route(f'{API_BASE}/registros', methods=['GET'])
 def obtener_registros():
@@ -123,8 +144,10 @@ def obtener_registros():
         for registro in registros:
             registro['_id'] = str(registro['_id'])
         
+        registros_serializados = [serialize_mongo_doc(reg) for reg in registros]
+        
         return jsonify({
-            "registros": registros,
+            "registros": registros_serializados,
             "paginacion": {
                 "pagina_actual": page,
                 "por_pagina": per_page,
@@ -160,7 +183,7 @@ def get_insights():
 
     analisis = perform_analysis(rutas)
     
-    return jsonify({"insight": analisis})
+    return jsonify({"insight": serialize_mongo_doc(analisis)})
 
 def perform_analysis(rutas):
     apiKey = os.getenv("GOOGLE_API_KEY")
@@ -218,10 +241,12 @@ def analizar_imagen(registro_id, filepath):
         
         # Obtener el registro actualizado
         registro_actualizado = registros_collection.find_one({'_id': ObjectId(registro_id)})
-        registro_actualizado['_id'] = str(registro_actualizado['_id'])
+        
+        # Serializar antes de emitir
+        registro_serializado = serialize_mongo_doc(registro_actualizado)
         
         # Emitir evento de actualización
-        socketio.emit('actualizacion_analisis', registro_actualizado, namespace='/dashboard')
+        socketio.emit('actualizacion_analisis', registro_serializado, namespace='/dashboard')
         
     except Exception as e:
         print(f"Error en el análisis: {e}")
@@ -233,6 +258,11 @@ def analizar_imagen(registro_id, filepath):
                 'procesado': True
             }}
         )
+
+        registro_actualizado = registros_collection.find_one({'_id': ObjectId(registro_id)})
+        if registro_actualizado:
+            registro_serializado = serialize_mongo_doc(registro_actualizado)
+            socketio.emit('actualizacion_analisis', registro_serializado, namespace='/dashboard')
 
 @app.route('/dashboard')
 def dashboard():
