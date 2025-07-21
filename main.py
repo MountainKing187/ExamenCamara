@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
+from config_loader import config_loader
 from pymongo import MongoClient
 from werkzeug.utils import secure_filename
 from bson import ObjectId
@@ -124,6 +125,72 @@ def obtener_registros():
 @app.route(f'{API_BASE}/imagen/<filename>', methods=['GET'])
 def servir_imagen(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@main_bp.route('/api/insights')
+def get_insights():
+    # Obtener el tiempo actual y el de hace 1 minuto
+    ahora = datetime.utcnow()
+    hace_un_minuto = ahora - timedelta(minutes=1)
+    
+    registros = registros_collection.find({
+        "fecha": {
+            "$gte": hace_un_minuto,
+            "$lte": ahora
+        }
+    })
+
+    resultado = [reg for reg in registros]
+
+    analisis = perform_analysis(resultado)
+    
+    return jsonify({"insight": analisis})
+
+def perform_analysis(registros):
+    config = config_loader.load_config()
+
+    genai.configure(api_key=config.GEMINI_API_KEY)
+    model = genai.GenerativeModel('gemini-2.5-flash')
+
+    try:
+        """Realiza el análisis de datos con Gemini"""
+
+        # Si no hay datos nuevos, saltar el análisis
+        if not registros:
+            print("No hay nuevos datos para analizar")
+            return "No hay nuevos datos para analizar"
+
+        rutas = [doc['ruta'] for reg in registros]
+        imagenes = [Image.open(ruta) for ruta in rutas]
+
+        prompt = f"""
+        Analiza las siguientes imagenes y describe lo que tiene
+        """
+      
+        response = model.generate_content([prompt,imagenes])
+        analisis = response.text.strip()
+        
+        return analisis
+
+    except Exception as e:
+        print(f"Error en el análisis: {e}")
+        time.sleep(10)
+        return f"Error en el análisis: {e}"
+
+def utc_time_to_millis(utc_time):
+    # Calculate total seconds since epoch
+    epoch = datetime(1970, 1, 1)
+    total_seconds_since_epoch = (utc_time - epoch).total_seconds()
+
+    # Convert to milliseconds
+    milliseconds_since_epoch = int(total_seconds_since_epoch * 1000)
+    return milliseconds_since_epoch
+
+def millis_to_timedate(milliseconds):
+    # Convert milliseconds to seconds (as a float to retain precision for microseconds)
+    seconds = milliseconds / 1000
+
+    # Convert the seconds timestamp to a datetime object
+    return datetime.fromtimestamp(seconds)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8081, debug=True)
